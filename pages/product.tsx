@@ -36,7 +36,7 @@ function ConsultationForm() {
         const controller = new AbortController();
         let buffer = '';
 
-        await fetchEventSource('/api', {
+        await fetchEventSource('https://ai-parenting-idea-saas.onrender.com/api', {
             signal: controller.signal,
             method: 'POST',
             headers: {
