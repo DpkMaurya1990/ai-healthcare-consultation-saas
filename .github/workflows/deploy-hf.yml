@@ -1,0 +1,92 @@
+name: Deploy to Hugging Face
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+  workflow_dispatch:
+    inputs:
+      commit_id:
+        description: "Commit ID to rollback"
+        required: true
+
+jobs:
+  deploy-dev:
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Deploy to HF Dev
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          SPACE="ai-healthcare-consultation-saas-dev"
+
+          git config --global user.email "deepak.mau2@gmail.com"
+          git config --global user.name "DpkMaurya1990"
+
+          git clone https://huggingface.co/spaces/dpkmaurya2025/$SPACE hf-space
+          rsync -av --delete ./ hf-space/ --exclude hf-space
+
+          cd hf-space
+          git add .
+          git diff --cached --quiet || git commit -m "auto deploy"
+          git push https://dpkmaurya2025:$HF_TOKEN@huggingface.co/spaces/dpkmaurya2025/$SPACE main
+
+
+  deploy-prod:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    environment:
+      name: prod   # 👈 THIS triggers approval
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Deploy to HF Prod
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          SPACE="ai-healthcare-consultation-saas-prod"
+
+          git config --global user.email "deepak.mau2@gmail.com"
+          git config --global user.name "DpkMaurya1990"
+
+          git clone https://huggingface.co/spaces/dpkmaurya2025/$SPACE hf-space
+          rsync -av --delete ./ hf-space/ --exclude hf-space
+
+          cd hf-space
+          git add .
+          git diff --cached --quiet || git commit -m "auto deploy"
+          git push https://dpkmaurya2025:$HF_TOKEN@huggingface.co/spaces/dpkmaurya2025/$SPACE main         
+          
+          
+  rollback:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Rollback HF Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          SPACE="prod-space-name"
+
+          git clone https://huggingface.co/spaces/dpkmaurya2025/$SPACE hf-space
+          cd hf-space
+
+          git log --oneline -n 5
+
+          # Go to previous commit
+          git reset --hard HEAD~1
+
+          git push https://dpkmaurya2025:$HF_TOKEN@huggingface.co/spaces/dpkmaurya2025/$SPACE main --force        
