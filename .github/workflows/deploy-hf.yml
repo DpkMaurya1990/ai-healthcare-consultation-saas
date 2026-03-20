@@ -36,7 +36,7 @@ jobs:
           cd hf-space
           git add .
           git diff --cached --quiet || git commit -m "auto deploy"
-          git push https://dpkmaurya2025:$HF_TOKEN@huggingface.co/spaces/dpkmaurya2025/$SPACE HEAD:main
+          git push https://dpkmaurya2025:$HF_TOKEN@huggingface.co/spaces/dpkmaurya2025/$SPACE HEAD:main --force
 
 
   deploy-prod:
@@ -65,7 +65,7 @@ jobs:
           cd hf-space
           git add .
           git diff --cached --quiet || git commit -m "auto deploy"
-          git push https://dpkmaurya2025:$HF_TOKEN@huggingface.co/spaces/dpkmaurya2025/$SPACE HEAD:main         
+          git push https://dpkmaurya2025:$HF_TOKEN@huggingface.co/spaces/dpkmaurya2025/$SPACE HEAD:main --force         
           
           
   rollback:
