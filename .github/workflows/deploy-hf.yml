@@ -70,29 +70,3 @@ jobs:
           git add .
           git diff --cached --quiet || git commit -m "auto deploy"
           git push https://dpkmaurya2025:$HF_TOKEN@huggingface.co/spaces/dpkmaurya2025/$SPACE HEAD:main --force         
-          
-          
-  rollback:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Rollback HF Space
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: |
-          SPACE="prod-space-name"
-
-          git clone https://huggingface.co/spaces/dpkmaurya2025/$SPACE hf-space
-          cd hf-space
-
-          git log --oneline -n 5
-
-          # Go to previous commit
-          git reset --hard HEAD~1
-
-          git push https://dpkmaurya2025:$HF_TOKEN@huggingface.co/spaces/dpkmaurya2025/$SPACE main --force        
