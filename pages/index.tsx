@@ -2,8 +2,13 @@
 
 import Link from 'next/link';
 import { SignInButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
+import { useClerk } from "@clerk/nextjs"; 
+import { useRouter } from "next/router";
 
 export default function Home() {
+  const router = useRouter();
+  const { openSignIn } = useClerk();
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       <div className="container mx-auto px-4 py-12">
@@ -14,11 +19,12 @@ export default function Home() {
           </h1>
           <div>
             <SignedOut>
-              <SignInButton mode="modal">
-                <button className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors">
-                  Sign In
-                </button>
-              </SignInButton>
+              <button
+                onClick={() => router.push("/sign-in")}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
+              >
+                Sign In
+              </button>
             </SignedOut>
             <SignedIn>
               <div className="flex items-center gap-4">
@@ -80,11 +86,12 @@ export default function Home() {
           </div>
           
           <SignedOut>
-            <SignInButton mode="modal">
-              <button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-8 rounded-xl text-lg transition-all transform hover:scale-105">
-                Start Free Trial
-              </button>
-            </SignInButton>
+            <button
+              onClick={() => router.push("/sign-in")}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-8 rounded-xl text-lg transition-all transform hover:scale-105"
+            >
+              Start Free Trial
+            </button>
           </SignedOut>
           <SignedIn>
             <Link href="/product">

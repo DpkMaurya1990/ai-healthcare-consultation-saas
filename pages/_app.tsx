@@ -5,11 +5,13 @@ import '../styles/globals.css';
 
 export default function MyApp({ Component, pageProps }: AppProps) {
   return (
-<ClerkProvider
-  {...pageProps}
-  afterSignOutUrl="/"
->
-  <Component {...pageProps} />
-</ClerkProvider>
+    <ClerkProvider
+      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      afterSignOutUrl="/"
+      signInFallbackRedirectUrl="/product"
+      signUpFallbackRedirectUrl="/product"
+    >
+      <Component {...pageProps} />
+    </ClerkProvider>
   );
 }
