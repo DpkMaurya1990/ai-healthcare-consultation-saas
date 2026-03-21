@@ -27,7 +27,7 @@ function ConsultationForm() {
         setOutput('');
         setLoading(true);
 
-        const jwt = await getToken();
+        const jwt = await getToken({ template: "default" });
         console.log("JWT:", jwt);
 
         if (!jwt) {
@@ -39,7 +39,7 @@ function ConsultationForm() {
         const controller = new AbortController();
         let buffer = '';
 
-        await fetchEventSource('https://ai-healthcare-consultation-saas-prod.hf.space/consultation', {
+        await fetchEventSource('https://healthcare-backend-c100.onrender.com/api/consultation', {
             signal: controller.signal,
             method: 'POST',
             headers: {
