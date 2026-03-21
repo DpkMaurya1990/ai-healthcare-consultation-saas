@@ -1,6 +1,9 @@
 # Stage 1: Build frontend
 FROM node:20 AS frontend-builder
 WORKDIR /app
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 COPY package*.json ./
 RUN npm install
 COPY . .
