@@ -27,7 +27,7 @@ function ConsultationForm() {
         setOutput('');
         setLoading(true);
 
-        const jwt = await getToken({ template: "default" });
+        const jwt = await getToken();
         console.log("JWT:", jwt);
 
         if (!jwt) {
@@ -52,6 +52,7 @@ function ConsultationForm() {
                 notes,
             }),
             onmessage(ev) {
+                console.log("DATA:", ev.data);
                 buffer += ev.data;
                 setOutput(buffer);
             },
