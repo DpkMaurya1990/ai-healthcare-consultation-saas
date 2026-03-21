@@ -30,7 +30,7 @@ jobs:
 
           cd hf-space
           git add .
-          git diff --cached --quiet || git commit -m "auto deploy"
+          git commit -m "auto deploy" || echo "no changes to commit"
           git push https://dpkmaurya2025:$HF_TOKEN@huggingface.co/spaces/dpkmaurya2025/$SPACE main --force --no-verify
 
 
