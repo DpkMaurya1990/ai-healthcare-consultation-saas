@@ -3,8 +3,10 @@
 import Link from 'next/link';
 import { SignInButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 import { useClerk } from "@clerk/nextjs"; 
+import { useRouter } from "next/router";
 
 export default function Home() {
+  const router = useRouter();
   const { openSignIn } = useClerk();
 
   return (
@@ -18,7 +20,7 @@ export default function Home() {
           <div>
             <SignedOut>
               <button
-                onClick={() => openSignIn()}
+                onClick={() => router.push("/sign-in")}
                 className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg transition-colors"
               >
                 Sign In
@@ -85,7 +87,7 @@ export default function Home() {
           
           <SignedOut>
             <button
-              onClick={() => openSignIn()}
+              onClick={() => router.push("/sign-in")}
               className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-8 rounded-xl text-lg transition-all transform hover:scale-105"
             >
               Start Free Trial

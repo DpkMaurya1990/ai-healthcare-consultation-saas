@@ -8,9 +8,8 @@ export default function MyApp({ Component, pageProps }: AppProps) {
     <ClerkProvider
       publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
       afterSignOutUrl="/"
-      signInUrl="/"
-      signUpUrl="/"
-      appearance={{}}
+      signInFallbackRedirectUrl="/product"
+      signUpFallbackRedirectUrl="/product"
     >
       <Component {...pageProps} />
     </ClerkProvider>
