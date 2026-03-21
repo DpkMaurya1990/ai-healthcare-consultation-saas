@@ -56,7 +56,7 @@ def consultation_summary(
     creds: HTTPAuthorizationCredentials = Depends(clerk_guard),
 ):
     user_id = creds.decoded["sub"]
-    client = OpenAI()
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     
     user_prompt = user_prompt_for(visit)
     prompt = [
@@ -87,21 +87,17 @@ def health_check():
     """Health check endpoint for AWS App Runner"""
     return {"status": "healthy"}
 
-# Serve static files (our Next.js export) - MUST BE LAST!
-# Serve static files (Next.js export) - MUST BE LAST!
+
+# ✅ ALWAYS include router (outside condition)
+app.include_router(api_router, prefix="/api")
+
 static_path = Path("static")
 
+# Serve static files (Next.js export) - MUST BE LAST!
 if static_path.exists():
-
-    # Serve Next.js assets like JS/CSS
     app.mount("/_next", StaticFiles(directory=static_path / "_next"), name="next")
-
-    # Serve other static assets
     app.mount("/static", StaticFiles(directory=static_path), name="static")
 
-    # Root page
     @app.get("/")
     async def serve_root():
         return FileResponse(static_path / "index.html")
-
-    app.include_router(api_router, prefix="/api")
