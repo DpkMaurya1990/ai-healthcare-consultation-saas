@@ -61,6 +61,7 @@ function ConsultationForm() {
             },
             onerror(err) {
                 console.error('SSE error:', err);
+                setOutput("Something went wrong ❌");
                 controller.abort();
                 setLoading(false);
             },
