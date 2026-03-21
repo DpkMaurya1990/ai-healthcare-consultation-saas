@@ -39,7 +39,7 @@ function ConsultationForm() {
         const controller = new AbortController();
         let buffer = '';
 
-        await fetchEventSource('https://ai-healthcare-consultation-saas-dev.hf.space/consultation', {
+        await fetchEventSource('https://ai-healthcare-consultation-saas-prod.hf.space/consultation', {
             signal: controller.signal,
             method: 'POST',
             headers: {

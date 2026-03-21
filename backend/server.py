@@ -104,7 +104,8 @@ if static_path.exists():
     @app.get("/{full_path:path}")
     async def serve_pages(full_path: str):
 
-        if full_path.startswith("api"):
+        # Skip API & FastAPI routes
+        if full_path.startswith(("api", "docs", "openapi.json", "consultation", "health")):
             return {"error": "Not Found"}
 
         html_file = static_path / f"{full_path}.html"
