@@ -22,11 +22,14 @@ function ConsultationForm() {
     const [loading, setLoading] = useState(false);
 
     async function handleSubmit(e: FormEvent) {
+        console.log("🔥 Submit clicked");
         e.preventDefault();
         setOutput('');
         setLoading(true);
 
         const jwt = await getToken();
+        console.log("JWT:", jwt);
+        
         if (!jwt) {
             setOutput('Authentication required');
             setLoading(false);
