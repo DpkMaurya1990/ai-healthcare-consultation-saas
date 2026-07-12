@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from fastapi import FastAPI, Depends
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import StreamingResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -11,11 +11,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = FastAPI()
+from fastapi import APIRouter
+
+api_router = APIRouter()
 
 # Add CORS middleware (allows frontend to call backend)
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -46,14 +51,26 @@ Date of Visit: {visit.date_of_visit}
 Notes:
 {visit.notes}"""
 
-@app.post("/api/consultation")
+# NEW CODE:
+@api_router.post("/consultation")
 def consultation_summary(
     visit: Visit,
     creds: HTTPAuthorizationCredentials = Depends(clerk_guard),
 ):
     user_id = creds.decoded["sub"]
-    client = OpenAI()
-    
+
+    ai_provider = os.getenv("AI_PROVIDER", "openai")  # "openai" or "groq"
+
+    if ai_provider == "groq":
+        client = OpenAI(
+            api_key=os.getenv("GROQ_API_KEY"),
+            base_url="https://api.groq.com/openai/v1",
+        )
+        model_name = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    else:
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        model_name = "gpt-5-nano"
+
     user_prompt = user_prompt_for(visit)
     prompt = [
         {"role": "system", "content": system_prompt},
@@ -61,7 +78,7 @@ def consultation_summary(
     ]
     
     stream = client.chat.completions.create(
-        model="gpt-5-nano",
+        model=model_name,
         messages=prompt,
         stream=True,
     )
@@ -83,33 +100,33 @@ def health_check():
     """Health check endpoint for AWS App Runner"""
     return {"status": "healthy"}
 
-# Serve static files (our Next.js export) - MUST BE LAST!
-# Serve static files (Next.js export) - MUST BE LAST!
+
+# ✅ ALWAYS include router (outside condition)
+app.include_router(api_router, prefix="/api/v1")
+
 static_path = Path("static")
 
+# Serve static files (Next.js export) - MUST BE LAST!
 if static_path.exists():
-
-    # Serve Next.js assets like JS/CSS
     app.mount("/_next", StaticFiles(directory=static_path / "_next"), name="next")
-
-    # Serve other static assets
     app.mount("/static", StaticFiles(directory=static_path), name="static")
 
-    # Root page
     @app.get("/")
     async def serve_root():
         return FileResponse(static_path / "index.html")
-
-    # SPA fallback (for routes like /product)
+    
+    # 👇 ADD THIS — catch-all for all other frontend pages (product, pricing, etc.)
     @app.get("/{full_path:path}")
-    async def serve_pages(full_path: str):
-
-        if full_path.startswith("api"):
-            return {"error": "Not Found"}
-
+    async def serve_frontend(full_path: str):
+        # Try exact matching .html file first (e.g. /product -> product.html)
         html_file = static_path / f"{full_path}.html"
-
         if html_file.exists():
             return FileResponse(html_file)
 
-        return FileResponse(static_path / "index.html")
+        # Fallback: maybe it's a folder-style export (e.g. /product/index.html)
+        folder_index = static_path / full_path / "index.html"
+        if folder_index.exists():
+            return FileResponse(folder_index)
+
+        # Nothing matched — genuine 404
+        return JSONResponse(status_code=404, content={"detail": "Page not found"})

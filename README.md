@@ -1,4 +1,3 @@
-
 ---
 title: AI Healthcare Consultation SaaS
 emoji: 🏥
@@ -9,202 +8,139 @@ app_port: 7860
 pinned: false
 ---
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+# 🏥 AI Healthcare Consultation SaaS (GenAI + Streaming)
 
-## Getting Started
+🚀 A production-style **Generative AI SaaS application** that transforms doctor consultation notes into structured summaries with real-time streaming responses — doctor summary, next steps, and a patient-friendly email draft.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## ⚡ Key Features
+* 🔐 Secure authentication using Clerk (JWT-based)
+* 🧠 AI-powered consultation summary generation (OpenAI in production, Groq for dev/testing)
+* ⚡ Real-time streaming responses (SSE)
+* 📄 Structured output:
+  * Summary for doctor's records
+  * Next steps
+  * Patient-friendly email draft
+
+---
+
+## 🧠 How It Works
+```text
+User → Login (Clerk)
+     → Enter Notes (Next.js frontend)
+     → API Call (FastAPI backend, same container)
+     → OpenAI / Groq Streaming Response
+     → Live Output Rendered (ReactMarkdown)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+## 🛠️ Tech Stack
+### Frontend
+* Next.js (static export)
+* ReactMarkdown (render AI output)
+* Clerk (authentication)
+* fetch-event-source (SSE streaming)
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+### Backend
+* FastAPI
+* OpenAI API / Groq API (streaming, switchable via `AI_PROVIDER`)
+* Clerk JWT verification
+* Uvicorn (ASGI server)
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+### Deployment
+* **Single combined Docker container** — FastAPI serves both the API and the static Next.js frontend
+* Current auto-deploy target: **Hugging Face Spaces** (via GitHub Actions on push to `main`/`dev`)
+* Planned: Railway (initial hosting), AWS App Runner (scale)
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 📂 Project Structure
+```bash
+.
+├── Dockerfile              # combined build: Next.js static export + FastAPI
+├── backend/
+│   ├── main.py              # FastAPI app, /api/v1 routes, Clerk auth, OpenAI/Groq streaming
+│   └── requirements.txt
+├── pages/
+│   ├── index.tsx
+│   └── product.tsx
+├── next.config.ts           # output: 'export'
+└── README.md
+```
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
+## 🚀 Getting Started (Local Setup)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 1️⃣ Backend Setup
+📍 Run inside `backend/`
+```bash
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
-
-*******************************************************************
-🚀 AI Parenting Idea SaaS
-
-An AI-powered subscription-based SaaS application that generates innovative parenting ideas using OpenAI, built with a modern full-stack architecture.
-
-🧠 Overview
-
-AI Parenting Idea SaaS is a full-stack web application that:
-
-Authenticates users with Clerk
-
-Handles subscriptions & billing
-
-Protects premium features
-
-Streams AI-generated content in real-time
-
-Uses OpenAI to generate creative parenting ideas
-
-This project demonstrates production-ready SaaS architecture with authentication, payments, and AI integration.
-
-🏗️ Tech Stack
-🔹 Frontend
-
-Next.js (App Router)
-
-TypeScript
-
-Tailwind CSS
-
-React Markdown
-
-Server-Sent Events (Streaming)
-
-🔹 Backend
-
-FastAPI
-
-OpenAI API (Streaming)
-
-JWT Verification (Clerk)
-
-Server-Sent Events (SSE)
-
-🔹 Authentication & Billing
-
-Clerk (Authentication & User Management)
-
-Stripe (Subscription Billing)
-
-JWT & JWKS-based token verification
-
-🔹 Deployment
-
-Vercel (Frontend + API)
-
-GitHub (Version Control)
-
-🔐 Authentication Flow
-
-User signs in using Clerk.
-
-Clerk issues a JWT token.
-
-Frontend sends JWT in Authorization header.
-
-Backend verifies JWT using Clerk JWKS.
-
-Access granted only to subscribed users.
-
-💳 Subscription & Feature Gating
-
-Premium subscription required to access idea generation.
-
-Clerk Billing manages subscription lifecycle.
-
-<Protect> component gates premium content.
-
-Backend validates subscription before generating AI response.
-
-⚡ Real-Time AI Streaming
-
-The app uses:
-
-OpenAI streaming responses
-
-FastAPI StreamingResponse
-
-Server-Sent Events (SSE)
-
-fetch-event-source on frontend
-
-This enables real-time idea generation similar to ChatGPT-style streaming.
-
-📂 Project Structure
-saap/
- ├── pages/
- │    ├── index.tsx        # Landing page
- │    ├── product.tsx      # Premium feature page
- │    ├── _app.tsx         # Clerk Provider
- │    └── _document.tsx    # HTML skeleton
- ├── api/
- │    └── index.py         # FastAPI streaming backend
- ├── styles/
- │    └── globals.css
- ├── README.md
- └── package.json
-🛠️ Environment Variables
-
-The following environment variables are required:
-
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
-CLERK_SECRET_KEY=
-CLERK_JWKS_URL=
-OPENAI_API_KEY=
-
-⚠️ Never commit .env files to GitHub.
-
-🚀 Local Development
+### 2️⃣ Frontend Setup
+📍 Run inside project root
+```bash
 npm install
-vercel dev
-🌍 Production Deployment
-vercel --prod
-📸 Demo
+npm run dev
+```
 
-Add your live Vercel URL here:
+### 3️⃣ Full Docker Build (recommended, matches production)
+📍 Run from project root
+```bash
+docker build -t consultation-app-test:latest \
+  --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=<your_key> \
+  --build-arg NEXT_PUBLIC_API_URL= \
+  .
 
-https://your-vercel-app-url.vercel.app
-🧩 Key Features
+docker run -p 7860:7860 --env-file backend/.env -e ALLOWED_ORIGINS=http://localhost:7860 consultation-app-test
+```
 
-🔐 Secure JWT-based authentication
+---
 
-💳 Subscription-based feature access
+## 🔐 Environment Variables
 
-⚡ Real-time AI streaming
+### Frontend (root `.env.local`)
+```env
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+NEXT_PUBLIC_API_URL=
+```
+> Leave `NEXT_PUBLIC_API_URL` empty for same-origin relative API calls (works for both local Docker and production, since frontend and backend are served from the same container/domain).
 
-🎨 Clean UI with Tailwind Typography
+### Backend (`backend/.env`)
+```env
+CLERK_SECRET_KEY=your_clerk_secret_key
+CLERK_JWKS_URL=your_clerk_jwks_url
+OPENAI_API_KEY=your_openai_key
+AI_PROVIDER=openai   # or 'groq' for dev/testing
+GROQ_API_KEY=your_groq_key
+```
 
-🛡️ Backend subscription enforcement
+---
 
-☁️ Cloud deployment with Vercel
+## 🧪 API Endpoints
+* `GET /health` → Health check
+* `POST /api/v1/consultation` → Generate AI summary (SSE streaming)
 
-📈 Future Improvements
+---
 
-Usage-based billing (token limits)
+## 🚀 Roadmap
+1. **Phase 1 — Stabilize deployment** ✅
+2. **Phase 2 — Security & compliance** (PII redaction, rate limiting, input validation, audit logging)
+3. **Phase 3 — Multi-tenant redesign** (business-type templates, Clerk Organizations)
+4. **Phase 4 — Data & billing** (Supabase Postgres, plan gating, RLS)
+5. **Phase 5 — Hosting & launch** (Railway → AWS App Runner, custom domain)
 
-Admin dashboard
+---
 
-Idea history storage
+## 🧠 Author
+**Deepak Maurya**
+Founder, DeepAKAI
 
-User analytics
+---
 
-Multi-model support
-
-👨‍💻 Author
-
-Deepak Maurya
-AI/ML Engineer | GenAI Enthusiast
+## ⭐ If you found this useful
+Give it a ⭐ on GitHub!

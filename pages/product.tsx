@@ -7,7 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
-import { Protect, PricingTable, UserButton } from '@clerk/nextjs';
+import { UserButton } from '@clerk/nextjs';
 
 function ConsultationForm() {
     const { getToken } = useAuth();
@@ -22,11 +22,14 @@ function ConsultationForm() {
     const [loading, setLoading] = useState(false);
 
     async function handleSubmit(e: FormEvent) {
+        console.log(" Submit clicked");
         e.preventDefault();
         setOutput('');
         setLoading(true);
 
         const jwt = await getToken();
+        console.log("JWT:", jwt);
+
         if (!jwt) {
             setOutput('Authentication required');
             setLoading(false);
@@ -34,9 +37,9 @@ function ConsultationForm() {
         }
 
         const controller = new AbortController();
-        let buffer = '';
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? '';
 
-        await fetchEventSource('/api/consultation', {
+        await fetchEventSource(`${apiUrl}/api/v1/consultation`, {
             signal: controller.signal,
             method: 'POST',
             headers: {
@@ -49,14 +52,15 @@ function ConsultationForm() {
                 notes,
             }),
             onmessage(ev) {
-                buffer += ev.data;
-                setOutput(buffer);
+                console.log("DATA:", ev.data);
+                setOutput(prev => prev + ev.data);
             },
             onclose() { 
                 setLoading(false); 
             },
             onerror(err) {
                 console.error('SSE error:', err);
+                setOutput("Something went wrong ❌");
                 controller.abort();
                 setLoading(false);
             },
@@ -145,27 +149,7 @@ export default function Product() {
                 <UserButton showName={true} />
             </div>
 
-            {/* Subscription Protection */}
-            <Protect
-                plan="premium"
-                fallback={
-                    <div className="container mx-auto px-4 py-12">
-                        <header className="text-center mb-12">
-                            <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
-                                Healthcare Professional Plan
-                            </h1>
-                            <p className="text-gray-600 dark:text-gray-400 text-lg mb-8">
-                                Streamline your patient consultations with AI-powered summaries
-                            </p>
-                        </header>
-                        <div className="max-w-4xl mx-auto">
-                            <PricingTable />
-                        </div>
-                    </div>
-                }
-            >
-                <ConsultationForm />
-            </Protect>
+            <ConsultationForm />
         </main>
     );
 }
