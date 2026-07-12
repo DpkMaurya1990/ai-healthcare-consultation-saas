@@ -7,7 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
-import { Protect, PricingTable, UserButton } from '@clerk/nextjs';
+import { UserButton } from '@clerk/nextjs';
 
 function ConsultationForm() {
     const { getToken } = useAuth();
@@ -37,9 +37,9 @@ function ConsultationForm() {
         }
 
         const controller = new AbortController();
-        let buffer = '';
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-        await fetchEventSource('https://healthcare-backend-c100.onrender.com/api/consultation', {
+        await fetchEventSource(`${apiUrl}/api/v1/consultation`, {
             signal: controller.signal,
             method: 'POST',
             headers: {

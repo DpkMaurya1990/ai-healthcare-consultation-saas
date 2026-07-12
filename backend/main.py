@@ -13,13 +13,12 @@ load_dotenv()
 app = FastAPI()
 from fastapi import APIRouter
 
-api_router = APIRouter()
-
-
 # Add CORS middleware (allows frontend to call backend)
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -89,7 +88,7 @@ def health_check():
 
 
 # ✅ ALWAYS include router (outside condition)
-app.include_router(api_router, prefix="/api")
+app.include_router(api_router, prefix="/api/v1")
 
 static_path = Path("static")
 
