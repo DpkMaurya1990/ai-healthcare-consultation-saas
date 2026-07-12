@@ -49,3 +49,5 @@ Consultation_Notes_App.md
 
 #venv
 cons_app_venv/
+
+__pycache__/

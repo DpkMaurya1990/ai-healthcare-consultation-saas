@@ -37,7 +37,7 @@ function ConsultationForm() {
         }
 
         const controller = new AbortController();
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? '';
 
         await fetchEventSource(`${apiUrl}/api/v1/consultation`, {
             signal: controller.signal,

@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from fastapi import FastAPI, Depends
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import StreamingResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -12,6 +12,8 @@ load_dotenv()
 
 app = FastAPI()
 from fastapi import APIRouter
+
+api_router = APIRouter()
 
 # Add CORS middleware (allows frontend to call backend)
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
@@ -112,3 +114,19 @@ if static_path.exists():
     @app.get("/")
     async def serve_root():
         return FileResponse(static_path / "index.html")
+    
+    # 👇 ADD THIS — catch-all for all other frontend pages (product, pricing, etc.)
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        # Try exact matching .html file first (e.g. /product -> product.html)
+        html_file = static_path / f"{full_path}.html"
+        if html_file.exists():
+            return FileResponse(html_file)
+
+        # Fallback: maybe it's a folder-style export (e.g. /product/index.html)
+        folder_index = static_path / full_path / "index.html"
+        if folder_index.exists():
+            return FileResponse(folder_index)
+
+        # Nothing matched — genuine 404
+        return JSONResponse(status_code=404, content={"detail": "Page not found"})
