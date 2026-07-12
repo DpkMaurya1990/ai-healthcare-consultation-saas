@@ -49,14 +49,26 @@ Date of Visit: {visit.date_of_visit}
 Notes:
 {visit.notes}"""
 
+# NEW CODE:
 @api_router.post("/consultation")
 def consultation_summary(
     visit: Visit,
     creds: HTTPAuthorizationCredentials = Depends(clerk_guard),
 ):
     user_id = creds.decoded["sub"]
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    
+
+    ai_provider = os.getenv("AI_PROVIDER", "openai")  # "openai" or "groq"
+
+    if ai_provider == "groq":
+        client = OpenAI(
+            api_key=os.getenv("GROQ_API_KEY"),
+            base_url="https://api.groq.com/openai/v1",
+        )
+        model_name = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    else:
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        model_name = "gpt-5-nano"
+
     user_prompt = user_prompt_for(visit)
     prompt = [
         {"role": "system", "content": system_prompt},
@@ -64,7 +76,7 @@ def consultation_summary(
     ]
     
     stream = client.chat.completions.create(
-        model="gpt-5-nano",
+        model=model_name,
         messages=prompt,
         stream=True,
     )
