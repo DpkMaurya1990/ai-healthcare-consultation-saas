@@ -42,6 +42,15 @@ Reply with exactly three sections with the headings:
 ### Summary of visit for the doctor's records
 ### Next steps for the doctor
 ### Draft of email to patient in patient-friendly language
+
+If the notes mention specific measurements or standard clinical details (such as
+blood pressure, temperature, weight, height, age, pulse, or other vitals), include
+those same values in the "Draft of email to patient" section as well, phrased in
+plain, patient-friendly language with brief context (for example: "your blood
+pressure was 120/80, which is within the normal range" rather than just "BP 120/80").
+Do not omit vitals from the patient email only because they appear in the doctor's
+summary. Only mention a measurement in the "Next steps" section if it is directly
+relevant to what the patient or doctor needs to monitor or act on going forward.
 """
 
 def user_prompt_for(visit: Visit) -> str:
