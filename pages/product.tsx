@@ -16,10 +16,69 @@ function ConsultationForm() {
     const [patientName, setPatientName] = useState('');
     const [visitDate, setVisitDate] = useState<Date | null>(new Date());
     const [notes, setNotes] = useState('');
+    const [patientEmail, setPatientEmail] = useState('');
+    const [patientPhone, setPatientPhone] = useState('');
 
     // Streaming state
     const [output, setOutput] = useState('');
     const [loading, setLoading] = useState(false);
+    const [copied, setCopied] = useState(false);
+
+    function extractPatientEmail(fullOutput: string): string {
+        const marker = /###\s*Draft of email to patient[^\n]*\n/i;
+        const match = fullOutput.match(marker);
+        if (match && match.index !== undefined) {
+            return fullOutput.slice(match.index + match[0].length).trim();
+        }
+        // Marker not found — fallback to full output so the button still works
+        return fullOutput;
+    }
+
+    function splitSubjectAndBody(emailContent: string) {
+        const subjectMatch = emailContent.match(/^Subject:\s*(.+)\n/i);
+        if (subjectMatch) {
+            return {
+                subject: subjectMatch[1].trim(),
+                body: emailContent.slice(subjectMatch[0].length).trim(),
+            };
+        }
+        return {
+            subject: `Consultation Notes - ${patientName || 'Patient'}`,
+            body: emailContent,
+        };
+    }
+
+    function buildGmailUrl() {
+        const patientEmailContent = extractPatientEmail(output);
+        const { subject, body } = splitSubjectAndBody(patientEmailContent);
+        const params = new URLSearchParams();
+        if (patientEmail.trim()) {
+            params.set('to', patientEmail.trim());
+        }
+        params.set('su', subject);
+        params.set('body', body);
+        return `https://mail.google.com/mail/?view=cm&fs=1&${params.toString()}`;
+    }
+
+    function buildWhatsAppUrl() {
+        const patientEmailContent = extractPatientEmail(output);
+        const digitsOnly = patientPhone.replace(/[^\d]/g, '');
+        const encodedText = encodeURIComponent(patientEmailContent);
+        return `https://wa.me/${digitsOnly}?text=${encodedText}`;
+    }
+
+    async function handleCopy() {
+        try {
+            const patientEmailContent = extractPatientEmail(output);
+            const { subject, body } = splitSubjectAndBody(patientEmailContent);
+            const textToCopy = `Subject: ${subject}\n\n${body}`;
+            await navigator.clipboard.writeText(textToCopy);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+            console.error('Copy failed:', err);
+        }
+    }
 
     async function handleSubmit(e: FormEvent) {
         console.log(" Submit clicked");
@@ -90,6 +149,34 @@ function ConsultationForm() {
                 </div>
 
                 <div className="space-y-2">
+                    <label htmlFor="patientEmail" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Patient Email <span className="text-gray-400 font-normal">(optional)</span>
+                    </label>
+                    <input
+                        id="patientEmail"
+                        type="email"
+                        value={patientEmail}
+                        onChange={(e) => setPatientEmail(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                        placeholder="patient@example.com"
+                    />
+                </div>
+
+                <div className="space-y-2">
+                    <label htmlFor="patientPhone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Patient Phone (WhatsApp) <span className="text-gray-400 font-normal">(optional)</span>
+                    </label>
+                    <input
+                        id="patientPhone"
+                        type="tel"
+                        value={patientPhone}
+                        onChange={(e) => setPatientPhone(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                        placeholder="+91 98765 43210"
+                    />
+                </div>
+
+                <div className="space-y-2">
                     <label htmlFor="date" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                         Date of Visit
                     </label>
@@ -134,6 +221,42 @@ function ConsultationForm() {
                         <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
                             {output}
                         </ReactMarkdown>
+                    </div>
+
+                    {output.length > 1500 && (
+                        <p className="mt-4 text-sm text-amber-600 dark:text-amber-400">
+                            This draft is long — if the full content doesn&apos;t appear in Gmail or WhatsApp, please use the Copy button instead.
+                        </p>
+                    )}
+
+                    <div className="mt-6 flex flex-wrap gap-3">
+                        <a
+                            href={buildGmailUrl()}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+                        >
+                            Send via Gmail
+                        </a>
+
+                        {patientPhone.trim() && (
+                            <a
+                                href={buildWhatsAppUrl()}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-lg transition-colors duration-200"
+                            >
+                                Send via WhatsApp
+                            </a>
+                        )}
+
+                        <button
+                            type="button"
+                            onClick={handleCopy}
+                            className="inline-flex items-center px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-100 text-sm font-medium rounded-lg transition-colors duration-200"
+                        >
+                            {copied ? 'Copied!' : 'Copy'}
+                        </button>
                     </div>
                 </section>
             )}
