@@ -75,17 +75,13 @@ User → Login (Clerk)
 ## 🚀 Getting Started (Local Setup)
 
 ### 1️⃣ Backend Setup
-📍 Run inside `backend/`
-```bash
-pip install -r requirements.txt
-uvicorn main:app --reload
-```
+📍 Use the [Local Runbook](#-local-runbook) for start/stop/rebuild commands.
 
 ### 2️⃣ Frontend Setup
-📍 Run inside project root
+📍 For local browser testing, use the [Local Runbook](#-local-runbook). If you are only rebuilding static frontend assets after editing `pages/`, run:
 ```bash
-npm install
-npm run dev
+npm run build
+cp -a out/. backend/static/
 ```
 
 ### 3️⃣ Full Docker Build (recommended, matches production)
@@ -98,6 +94,46 @@ docker build -t consultation-app-test:latest \
 
 docker run -p 7860:7860 --env-file backend/.env -e ALLOWED_ORIGINS=http://localhost:7860 consultation-app-test
 ```
+
+---
+
+## 🧭 Local Runbook
+
+### Start the backend for local testing
+Run this from the repo root so the backend starts from the correct folder with local auth bypass:
+```bash
+bash scripts/dev.sh start
+# or: ./scripts/dev.sh start
+```
+
+Open:
+```text
+http://127.0.0.1:8000/product
+```
+
+### Stop the backend
+If an old server is still holding port 8000:
+```bash
+bash scripts/dev.sh stop
+# or: ./scripts/dev.sh stop
+```
+
+### Rebuild frontend and resync static assets
+Run this from the repo root after editing `pages/`:
+```bash
+bash scripts/dev.sh rebuild
+# or: ./scripts/dev.sh rebuild
+```
+
+### Run no-PII logging audit
+Run this from the repo root to scan backend source for obvious raw PII logging patterns:
+```bash
+bash scripts/audit_no_pii_logs.sh
+# or: ./scripts/audit_no_pii_logs.sh
+```
+Expected:
+- Exit code `0` with `OK` message when no obvious PII logging patterns are found.
+- Exit code `1` with suspicious line output when manual review is required.
 
 ---
 

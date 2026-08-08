@@ -9,11 +9,28 @@ import remarkBreaks from 'remark-breaks';
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 import { UserButton } from '@clerk/nextjs';
 
+type ConsultationStreamError = Error & {
+    status?: number;
+    requestId?: string;
+};
+
+function buildConsultationError(message: string, status?: number, requestId?: string): ConsultationStreamError {
+    const error = new Error(message) as ConsultationStreamError;
+    if (status !== undefined) {
+        error.status = status;
+    }
+    if (requestId) {
+        error.requestId = requestId;
+    }
+    return error;
+}
+
 function ConsultationForm() {
     const { getToken } = useAuth();
 
     // Form state
     const [patientName, setPatientName] = useState('');
+    const [senderName, setSenderName] = useState('Dr. Sharma Clinic');
     const [visitDate, setVisitDate] = useState<Date | null>(new Date());
     const [notes, setNotes] = useState('');
     const [patientEmail, setPatientEmail] = useState('');
@@ -23,34 +40,57 @@ function ConsultationForm() {
     const [output, setOutput] = useState('');
     const [loading, setLoading] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+    const [requestId, setRequestId] = useState('');
 
-    function extractPatientEmail(fullOutput: string): string {
+    function normalizeGreetingForDisplay(text: string, name: string): string {
+        const normalizedName = name.trim();
+        const greeting = normalizedName ? `Hello ${normalizedName},` : 'Hello,';
         const marker = /###\s*Draft of email to patient[^\n]*\n/i;
-        const match = fullOutput.match(marker);
+        const match = text.match(marker);
+        const greetingPattern = /^(\s*)(Dear(?:\s+[^,\n]+)?\s*,?|Hello(?:\s+[^,\n]+)?\s*,?|Hi(?:\s+[^,\n]+)?\s*,?)/im;
+
         if (match && match.index !== undefined) {
-            return fullOutput.slice(match.index + match[0].length).trim();
+            const before = text.slice(0, match.index + match[0].length);
+            const after = text.slice(match.index + match[0].length);
+            const normalizedAfter = after.replace(greetingPattern, `${greeting}`);
+            return before + normalizedAfter;
         }
-        // Marker not found — fallback to full output so the button still works
-        return fullOutput;
+
+        return text.replace(greetingPattern, greeting);
     }
 
-    function splitSubjectAndBody(emailContent: string) {
-        const subjectMatch = emailContent.match(/^Subject:\s*(.+)\n/i);
-        if (subjectMatch) {
-            return {
-                subject: subjectMatch[1].trim(),
-                body: emailContent.slice(subjectMatch[0].length).trim(),
-            };
+    function extractPatientEmail(fullOutput: string): { subject: string; body: string } {
+        const normalizedOutput = normalizeGreetingForDisplay(fullOutput, patientName);
+        const subjectMatch = normalizedOutput.match(/(?:^|\n)Subject:\s*(.+)\n/i);
+        const marker = /###\s*Draft of email to patient[^\n]*\n/i;
+        const match = normalizedOutput.match(marker);
+        const defaultSubject = 'Follow-up from your recent visit';
+
+        let body = normalizedOutput;
+        if (match && match.index !== undefined) {
+            body = normalizedOutput.slice(match.index + match[0].length).trim();
         }
+
+        body = body.replace(/^Subject:\s*.+\n/i, '').trim();
+
         return {
-            subject: `Consultation Notes - ${patientName || 'Patient'}`,
-            body: emailContent,
+            subject: subjectMatch?.[1]?.trim() || defaultSubject,
+            body,
         };
     }
 
+    function buildEmailPreviewMarkdown() {
+        const { subject, body } = extractPatientEmail(output);
+        if (!body) {
+            return '';
+        }
+
+        return `Subject: ${subject}\n\n${body}`;
+    }
+
     function buildGmailUrl() {
-        const patientEmailContent = extractPatientEmail(output);
-        const { subject, body } = splitSubjectAndBody(patientEmailContent);
+        const { subject, body } = extractPatientEmail(output);
         const params = new URLSearchParams();
         if (patientEmail.trim()) {
             params.set('to', patientEmail.trim());
@@ -61,16 +101,15 @@ function ConsultationForm() {
     }
 
     function buildWhatsAppUrl() {
-        const patientEmailContent = extractPatientEmail(output);
+        const { body } = extractPatientEmail(output);
         const digitsOnly = patientPhone.replace(/[^\d]/g, '');
-        const encodedText = encodeURIComponent(patientEmailContent);
+        const encodedText = encodeURIComponent(body);
         return `https://wa.me/${digitsOnly}?text=${encodedText}`;
     }
 
     async function handleCopy() {
         try {
-            const patientEmailContent = extractPatientEmail(output);
-            const { subject, body } = splitSubjectAndBody(patientEmailContent);
+            const { subject, body } = extractPatientEmail(output);
             const textToCopy = `Subject: ${subject}\n\n${body}`;
             await navigator.clipboard.writeText(textToCopy);
             setCopied(true);
@@ -89,39 +128,76 @@ function ConsultationForm() {
         const jwt = await getToken();
         console.log("JWT:", jwt);
 
-        if (!jwt) {
-            setOutput('Authentication required');
-            setLoading(false);
-            return;
-        }
-
         const controller = new AbortController();
         const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? '';
+        setErrorMessage('');
+        setRequestId('');
+        setOutput('');
+        let currentRequestId = '';
+
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+        };
+        if (jwt) {
+            headers.Authorization = `Bearer ${jwt}`;
+        }
 
         await fetchEventSource(`${apiUrl}/api/v1/consultation`, {
             signal: controller.signal,
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${jwt}`,
-            },
+            headers,
             body: JSON.stringify({
                 patient_name: patientName,
+                sender_name: senderName,
                 date_of_visit: visitDate?.toISOString().slice(0, 10),
                 notes,
             }),
+            async onopen(response) {
+                const headerRequestId = response.headers.get('x-request-id')?.trim() || '';
+                if (headerRequestId) {
+                    currentRequestId = headerRequestId;
+                    setRequestId(headerRequestId);
+                }
+
+                if (!response.ok) {
+                    throw buildConsultationError(
+                        `Consultation request failed with status ${response.status}`,
+                        response.status,
+                        headerRequestId,
+                    );
+                }
+
+                const contentType = response.headers.get('content-type') ?? '';
+                if (!contentType.includes('text/event-stream')) {
+                    throw buildConsultationError(
+                        `Expected text/event-stream but received ${contentType || 'unknown content type'}`,
+                        response.status,
+                        headerRequestId,
+                    );
+                }
+            },
             onmessage(ev) {
                 console.log("DATA:", ev.data);
-                setOutput(prev => prev + ev.data);
+                setOutput(prev => `${prev}${ev.data}\n`);
             },
-            onclose() { 
-                setLoading(false); 
-            },
-            onerror(err) {
-                console.error('SSE error:', err);
-                setOutput("Something went wrong ❌");
-                controller.abort();
+            onclose() {
                 setLoading(false);
+            },
+            onerror(err: ConsultationStreamError) {
+                const trackedRequestId = err.requestId || currentRequestId;
+                console.error('SSE error:', err, trackedRequestId ? `(request_id=${trackedRequestId})` : '');
+                if (trackedRequestId) {
+                    setRequestId(trackedRequestId);
+                }
+
+                if (err?.status === 429) {
+                    setErrorMessage('Too many requests. Please wait a moment and try again.');
+                } else {
+                    setErrorMessage('Something went wrong. Please try again.');
+                }
+
+                setLoading(false);
+                controller.abort();
             },
         });
     }
@@ -140,11 +216,24 @@ function ConsultationForm() {
                     <input
                         id="patient"
                         type="text"
-                        required
                         value={patientName}
                         onChange={(e) => setPatientName(e.target.value)}
                         className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                        placeholder="Enter patient's full name"
+                        placeholder="Leave blank if you don't want to personalize the email"
+                    />
+                </div>
+
+                <div className="space-y-2">
+                    <label htmlFor="senderName" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Sender / Clinic Name <span className="text-gray-400 font-normal">(optional)</span>
+                    </label>
+                    <input
+                        id="senderName"
+                        type="text"
+                        value={senderName}
+                        onChange={(e) => setSenderName(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                        placeholder="Dr. Sharma Clinic"
                     />
                 </div>
 
@@ -213,13 +302,26 @@ function ConsultationForm() {
                 >
                     {loading ? 'Generating Summary...' : 'Generate Summary'}
                 </button>
+
+                {errorMessage && (
+                    <div className="mt-3 space-y-1">
+                        <p className="text-sm text-red-600 dark:text-red-400">
+                            {errorMessage}
+                        </p>
+                        {requestId && (
+                            <p className="text-xs text-gray-600 dark:text-gray-300">
+                                Reference ID: {requestId}
+                            </p>
+                        )}
+                    </div>
+                )}
             </form>
 
             {output && (
                 <section className="mt-8 bg-gray-50 dark:bg-gray-800 rounded-xl shadow-lg p-8">
                     <div className="markdown-content prose prose-blue dark:prose-invert max-w-none">
                         <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
-                            {output}
+                            {buildEmailPreviewMarkdown()}
                         </ReactMarkdown>
                     </div>
 
