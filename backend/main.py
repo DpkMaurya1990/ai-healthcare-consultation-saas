@@ -86,6 +86,29 @@ audit_logger.setLevel(logging.INFO)
 access_logger.setLevel(logging.INFO)
 
 
+def validate_runtime_config() -> None:
+    """Fail fast when production settings are missing required credentials."""
+    if os.getenv("APP_ENV", "development").strip().lower() != "production":
+        return
+
+    missing: list[str] = []
+    for key in ("CLERK_JWKS_URL", "CLERK_SECRET_KEY"):
+        if not os.getenv(key, "").strip():
+            missing.append(key)
+
+    provider = os.getenv("AI_PROVIDER", "openai").strip().lower()
+    if provider == "groq":
+        required_key = "GROQ_API_KEY"
+    else:
+        required_key = "OPENAI_API_KEY"
+    if not os.getenv(required_key, "").strip():
+        missing.append(required_key)
+
+    if missing:
+        joined = ", ".join(missing)
+        raise RuntimeError(f"Missing required production config values: {joined}")
+
+
 def resolve_request_id(incoming_request_id: str | None) -> str:
     candidate = (incoming_request_id or "").strip()
     if candidate and REQUEST_ID_PATTERN.fullmatch(candidate):
@@ -145,9 +168,16 @@ async def request_id_middleware(request: Request, call_next):
         )
         request_id_ctx_var.reset(token)
 
+validate_runtime_config()
+
 # Clerk authentication setup
-clerk_config = ClerkConfig(jwks_url=os.getenv("CLERK_JWKS_URL"))
+clerk_config = ClerkConfig(jwks_url=os.getenv("CLERK_JWKS_URL", ""))
 clerk_guard_impl = ClerkHTTPBearer(clerk_config, auto_error=False)
+
+
+@app.on_event("startup")
+async def startup_event() -> None:
+    validate_runtime_config()
 
 async def clerk_guard(request: Request) -> HTTPAuthorizationCredentials | None:
     if os.getenv("LOCAL_DEV_BYPASS_AUTH") == "1":

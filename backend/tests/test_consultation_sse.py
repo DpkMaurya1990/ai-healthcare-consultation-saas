@@ -1,3 +1,4 @@
+import os
 import sys
 import json
 import unittest
@@ -19,6 +20,21 @@ class ConsultationSSEIntegrationTests(unittest.TestCase):
 
     def _clear_dependency_overrides(self) -> None:
         main.app.dependency_overrides.clear()
+
+    def test_runtime_config_requires_api_keys_in_production(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "APP_ENV": "production",
+                "CLERK_JWKS_URL": "https://example.clerk.accounts.dev/.well-known/jwks.json",
+                "CLERK_SECRET_KEY": "",
+                "OPENAI_API_KEY": "",
+                "AI_PROVIDER": "openai",
+            },
+            clear=True,
+        ):
+            with self.assertRaises(RuntimeError):
+                main.validate_runtime_config()
 
     def test_user_prompt_wraps_notes_in_untrusted_block(self) -> None:
         visit = main.Visit(
