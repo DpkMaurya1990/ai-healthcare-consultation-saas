@@ -3,15 +3,24 @@ import { SignIn } from "@clerk/nextjs";
 
 export default function Page() {
   useEffect(() => {
-    // Agar page iframe ke andar open hua hai (jaise Hugging Face Spaces embed UI)
-    if (typeof window !== "undefined" && window.self !== window.top) {
+    if (typeof window === "undefined" || window.self === window.top) {
+      return;
+    }
+
+    try {
+      const currentHost = window.location.hostname;
       const hfDirectHost = "dpkmaurya2025-ai-healthcare-consultation-saas-dev.hf.space";
-      // Agar current hostname hf.space direct domain nahi hai ya iframe mein trap hai
-      if (window.location.hostname.includes("hf.space") || window.location.hostname.includes("huggingface.co")) {
-        if (window.top) {
-          window.top.location.href = `https://${hfDirectHost}/sign-in`;
-        }
+
+      if (
+        (currentHost.includes("hf.space") || currentHost.includes("huggingface.co")) &&
+        window.top &&
+        window.top.location &&
+        window.top.location.origin === window.location.origin
+      ) {
+        window.top.location.href = `https://${hfDirectHost}/sign-in`;
       }
+    } catch {
+      // Ignore cross-origin iframe redirects: HF embedding can block access to window.top.
     }
   }, []);
 
