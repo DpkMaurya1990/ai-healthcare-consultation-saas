@@ -2,8 +2,10 @@
 FROM node:20 AS frontend-builder
 WORKDIR /app
 ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ARG NEXT_PUBLIC_API_URL
 
 ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 COPY package*.json ./
 RUN npm install
 COPY . .
@@ -28,4 +30,4 @@ COPY --from=frontend-builder /app/out ./static
 EXPOSE 7860
 
 # 🔥 IMPORTANT (THIS WAS MISSING)
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "7860"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860"]

@@ -1,0 +1,22 @@
+name: No-PII Log Audit
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
+
+jobs:
+  audit-no-pii-logs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run no-PII logging audit
+        run: bash scripts/audit_no_pii_logs.sh
