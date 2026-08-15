@@ -3,6 +3,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from fastapi.testclient import TestClient
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import main as consultation_main
@@ -47,7 +49,7 @@ class ConsultationSSEIntegrationTests(unittest.TestCase):
                 self.chat = FakeChat()
 
         with patch.object(consultation_main, "OpenAI", FakeOpenAI):
-            with consultation_main.app.test_client() as client:
+            with TestClient(consultation_main.app) as client:
                 response = client.post(
                     "/api/v1/consultation",
                     json={
