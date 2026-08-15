@@ -15,12 +15,12 @@ export default function Page() {
         (currentHost.includes("hf.space") || currentHost.includes("huggingface.co")) &&
         window.top &&
         window.top.location &&
-        window.top.location.origin === window.location.origin
+        window.top.location.origin === "https://" + hfDirectHost
       ) {
         window.top.location.href = `https://${hfDirectHost}/sign-in`;
       }
     } catch {
-      // Ignore cross-origin iframe redirects: HF embedding can block access to window.top.
+      // Ignore iframe access errors; this is a browser-embedding workaround only.
     }
   }, []);
 
