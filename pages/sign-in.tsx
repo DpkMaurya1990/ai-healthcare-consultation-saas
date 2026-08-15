@@ -8,7 +8,9 @@ export default function Page() {
       const hfDirectHost = "dpkmaurya2025-ai-healthcare-consultation-saas-dev.hf.space";
       // Agar current hostname hf.space direct domain nahi hai ya iframe mein trap hai
       if (window.location.hostname.includes("hf.space") || window.location.hostname.includes("huggingface.co")) {
-        window.top.location.href = `https://${hfDirectHost}/sign-in`;
+        if (window.top) {
+          window.top.location.href = `https://${hfDirectHost}/sign-in`;
+        }
       }
     }
   }, []);
